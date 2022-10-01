@@ -2,69 +2,141 @@
 Param(
     [Parameter(
             Mandatory=$True,
-            HelpMessage = "The image version number")]
-    [string] $version,
-    
-    [Parameter(
-            Mandatory=$True,
             HelpMessage = "Build type, must be one of these: mysql, sqlite, sqlserver, postgresql, or all")]
     [ValidateSet("mysql", "sqlite", "sqlserver", "postgresql", "all")]
-    [string] $build
+    [string] $BuildType
 )
 
-$currentDir = Get-Location
-$Env:OUTPUT = "$PSScriptRoot/bin/output"
+$ErrorActionPreference = 'Stop'
 
-if("sqlite" -eq $build -or "all" -eq $build) {
-    # Build exporter
-    dotnet build -c Release $PSScriptRoot/src/Sqlite.Exporter/Sqlite.Exporter.csproj -o $PSScriptRoot/bin/build
-    Set-Location $PSScriptRoot/bin
+class Builder {
+    [string] static $BinFolder
+    [string] static $BuildFolder 
+    [string] static $OutputFolder
 
-    # Execute exporter
-    dotnet $PSScriptRoot/bin/build/Sqlite.Exporter.dll
+    [string] $Project
+    [string] $ProjectFolder
+    [string] $ProjectFile
+    [string] $Version
+    [string] $DockerName
 
-    # Copy result
-    Copy-Item $PSScriptRoot/bin/output/database.db -Destination "$PSScriptRoot/bin/akka-sqlite.$version.db"
+    Builder([string] $p)
+    {
+        $this.Project = $p
+        $this.ProjectFolder = "$PSScriptRoot/src/$($this.Project).Exporter"
+        $this.ProjectFile = "$($this.ProjectFolder)/$($this.Project).Exporter.csproj"
+        $this.Version = $this.GetProjectVersion()
+        $this.DockerName = "akka-persistence-$($this.Project.ToLowerInvariant())-test-data:$($this.Version)"
+    }
+
+    [void] BuildProject() {
+        Write-Host "Building $($this.Project) exporter" -ForegroundColor White
+        dotnet build -c Release "$($this.ProjectFile)" -o $([Builder]::BuildFolder) | Out-Host
+        if($LASTEXITCODE -ne 0) {
+            exit
+        }
+
+        Write-Host "Executing $($this.Project) exporter" -ForegroundColor White
+        $oldLocation = Get-Location
+        Set-Location $([Builder]::BinFolder)
+        dotnet "$([Builder]::BuildFolder)/$($this.Project).Exporter.dll" | Out-Host
+        Set-Location $oldLocation
+        if($LASTEXITCODE -ne 0) {
+            exit
+        }
+    }
+
+    [string] GetProjectVersion() {
+        Write-Host "Grabbing Akka.Persistence.$($this.Project) module version" -ForegroundColor White
+        $match = Select-String -Pattern """Akka.Persistence.$($this.Project)"" Version=""([a-zA-Z0-9.-]*)""" -Path $($this.ProjectFile)
+        if($null -eq $match)
+        {
+            Write-Error -Message "Failed to retrieve version number for Akka.Persistence.$($this.Project), could not find regex pattern"
+        }
+        if($match.Matches.Length -gt 1)
+        {
+            Write-Error -Message "Failed to retrieve version number for Akka.Persistence.$($this.Project), found multiple possible versions"
+        }
+        $v = $match.Matches[0].Groups[1].Value
+        Write-Host "Found version: $v" -ForegroundColor White
+        return $v
+    }
     
-    # Clean-up
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/build
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/output
+    [void] BuildDockerImage() {
+        Write-Host "Building docker image: $($this.DockerName)" -ForegroundColor White
+        Copy-Item "$($this.ProjectFolder)/Dockerfile" -Destination $([Builder]::BinFolder)
+        
+        $oldLocation = Get-Location
+        Set-Location $([Builder]::BinFolder)
+        docker build -t $($this.DockerName) . | Out-Host
+        Set-Location $oldLocation
+        if($LASTEXITCODE -ne 0) {
+            exit
+        }
+    }
+
+    [void] CleanUp() {
+        Write-Host "Cleaning up temporary folders" -ForegroundColor White
+        if(Test-Path -Path $([Builder]::BuildFolder)) {
+            Write-Verbose -Message "Removing $([Builder]::BuildFolder)"
+            Remove-Item -Recurse -Force $([Builder]::BuildFolder)
+        }
+        if(Test-Path -Path $([Builder]::OutputFolder)) {
+            Write-Verbose -Message "Removing $([Builder]::OutputFolder)"
+            Remove-Item -Recurse -Force $([Builder]::OutputFolder)
+        }
+        if(Test-Path -Path "$([Builder]::BinFolder)/Dockerfile") {
+            Write-Verbose -Message "Removing $([Builder]::BinFolder)/Dockerfile"
+            Remove-Item -Force "$([Builder]::BinFolder)/Dockerfile"
+        }
+    }
 }
 
-if("mysql" -eq $build -or "all" -eq $build) {
-    # Build exporter
-    dotnet build -c Release $PSScriptRoot/src/MySql.Exporter/MySql.Exporter.csproj -o $PSScriptRoot/bin/build
-    Set-Location $PSScriptRoot/bin
-    
-    # Execute exporter
-    dotnet $PSScriptRoot/bin/build/MySql.Exporter.dll
-    
-    # Build docker image
-    Copy-Item $PSScriptRoot/src/MySql.Exporter/Dockerfile -Destination $PSScriptRoot/bin
-    docker build -t akka-mysql:$version .
-    
-    # Clean-up
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/build
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/output
-    Remove-Item $PSScriptRoot/bin/Dockerfile
+[Builder]::BinFolder = "$PSScriptRoot/bin"
+[Builder]::BuildFolder = "$([Builder]::BinFolder)/build"
+[Builder]::OutputFolder = "$([Builder]::BinFolder)/output"
+$Env:OUTPUT = "$([Builder]::OutputFolder)"
+$Output = @()
+
+if( -not (Test-Path -Path $([Builder]::BinFolder)))
+{
+    try 
+    {
+        New-Item -Path $([Builder]::BinFolder) -ItemType Directory
+    } 
+    catch
+    {
+        Write-Error -Message "Failed to create directory $([Builder]::BinFolder)"
+    }
 }
 
-if("sqlserver" -eq $build -or "all" -eq $build) {
-    # Build exporter
-    dotnet build -c Release $PSScriptRoot/src/SqlServer.Exporter/SqlServer.Exporter.csproj -o $PSScriptRoot/bin/build
-    Set-Location $PSScriptRoot/bin
+if("sqlite" -eq $BuildType -or "all" -eq $BuildType) {
+    $sqlite = [Builder]::new("Sqlite")
+    
+    $sqlite.BuildProject()
 
-    # Execute exporter
-    dotnet $PSScriptRoot/bin/build/SqlServer.Exporter.dll
-
-    # Build docker image
-    Copy-Item $PSScriptRoot/src/SqlServer.Exporter/Dockerfile -Destination $PSScriptRoot/bin
-    docker build -t akka-mysql:$version .
-
-    # Clean-up
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/build
-    Remove-Item -Recurse -Force $PSScriptRoot/bin/output
-    Remove-Item $PSScriptRoot/bin/Dockerfile
+    # SqLite project outputs a file, not a docker image
+    $outputFile = "$([Builder]::BinFolder)/akka-persistence-$($sqlite.Project.ToLowerInvariant())-test-data.$($sqlite.Version).db"
+    Copy-Item -Force -Path "$([Builder]::OutputFolder)/database.db" -Destination $outputFile
+    
+    $sqlite.CleanUp()
+    $Output += "Akka.Persistence.Sqlite exporter database file: $outputFile"
 }
 
-Set-Location $currentDir
+if("mysql" -eq $BuildType -or "all" -eq $BuildType) {
+    $mysql = [Builder]::new("MySql")
+    $mysql.BuildProject()
+    $mysql.BuildDockerImage()
+    $mysql.CleanUp()
+    $Output += "Akka.Persistence.MySql exporter docker image name: $($mysql.DockerName)"
+}
+
+if("sqlserver" -eq $BuildType -or "all" -eq $BuildType) {
+    $sqlserver = [Builder]::new("SqlServer")
+    $sqlserver.BuildProject()
+    $sqlserver.BuildDockerImage()
+    $sqlserver.CleanUp()
+    $Output += "Akka.Persistence.SqlServer exporter docker image name: $($sqlserver.DockerName)"
+}
+
+Write-Host $Output -Separator "`n" -ForegroundColor White
