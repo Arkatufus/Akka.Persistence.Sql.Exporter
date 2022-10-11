@@ -4,7 +4,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
-namespace Akka.Persistence.Sql.Exporter.Shared;
+namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
 public sealed class Store
 {

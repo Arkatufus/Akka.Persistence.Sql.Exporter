@@ -17,7 +17,7 @@ public class SqlServerDocker: DockerContainer
         
     }
 
-    public string? ConnectionString { get; private set; }
+    public string ConnectionString { get; private set; } = "";
         
     private int Port { get; } = ThreadLocalRandom.Current.Next(9000, 10000);
     

@@ -4,6 +4,9 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using Akka.Hosting;
+using Akka.Persistence.Sql.Exporter.Shared.Test;
+
 var outputPath = Env.OutputPath;
 if (!Directory.Exists(outputPath))
     Directory.CreateDirectory(outputPath);
@@ -15,7 +18,9 @@ if (!File.Exists(dbFile))
 var uri = new Uri($"file://{dbFile.Replace("\\", "/")}");
 var connectionString = $"Filename={uri}";
 
-var config = ConfigurationFactory.ParseString($@"
+void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)
+{
+    var config = ConfigurationFactory.ParseString($@"
     akka.loglevel = DEBUG
     akka.persistence.journal {{
         plugin = ""akka.persistence.journal.sqlite""
@@ -31,7 +36,15 @@ var config = ConfigurationFactory.ParseString($@"
             connection-string = ""{connectionString}""
         }}
     }}").WithFallback(SqlitePersistence.DefaultConfiguration());
-            
-var sys = ActorSystem.Create("actorSystem", config);
-await sys.CreateTestData();
+
+    builder
+        .AddHocon(config);
+}
+
+await using var testCluster = new TestCluster(Setup);
+await testCluster.StartAsync();
+
+var generator = new DataGenerator(testCluster);
+await generator.GenerateAsync();
+
 Console.WriteLine(">>>>>>>>>>> DONE!");

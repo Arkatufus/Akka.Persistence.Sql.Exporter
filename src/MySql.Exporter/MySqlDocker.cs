@@ -15,7 +15,7 @@ public class MySqlDocker : DockerContainer
     {
     }
 
-    public string? ConnectionString { get; private set; }
+    public string ConnectionString { get; private set; } = "";
         
     private int Port { get; } = ThreadLocalRandom.Current.Next(9000, 10000);
     private string User { get; } = "root";

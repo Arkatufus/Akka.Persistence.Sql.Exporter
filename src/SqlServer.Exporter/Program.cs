@@ -4,6 +4,10 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using Akka.Hosting;
+using Akka.Persistence.Sql.Exporter.Shared.Test;
+using Akka.Persistence.SqlServer.Hosting;
+
 await using var docker = new SqlServerDocker();
 docker.OnStdOut += (_, outputArgs) =>
 {
@@ -11,26 +15,17 @@ docker.OnStdOut += (_, outputArgs) =>
 };
 await docker.StartAsync();
 
-var config = ConfigurationFactory.ParseString($@"
-    akka.loglevel = DEBUG
-    akka.persistence.journal {{
-        plugin = ""akka.persistence.journal.sql-server""
-        sql-server {{
-            auto-initialize = on
-            connection-string = ""{docker.ConnectionString}""
-        }}
-    }}
-    akka.persistence.snapshot-store {{
-        plugin = ""akka.persistence.snapshot-store.sql-server""
-        sql-server {{
-            auto-initialize = on
-            connection-string = ""{docker.ConnectionString}""
-        }}
-    }}").WithFallback(SqlServerPersistence.DefaultConfiguration());
+void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)
+{
+    builder
+        .WithSqlServerPersistence(docker.ConnectionString, autoInitialize:true);
+}
 
-using var sys = ActorSystem.Create("actorSystem", config);
+await using var testCluster = new TestCluster(Setup);
+await testCluster.StartAsync();
 
-await sys.CreateTestData();
+var generator = new DataGenerator(testCluster);
+await generator.GenerateAsync();
 
 Console.WriteLine(">>>>>>>>>>> downloading backup");
 
