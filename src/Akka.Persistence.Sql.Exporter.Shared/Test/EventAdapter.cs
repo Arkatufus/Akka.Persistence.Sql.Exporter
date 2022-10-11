@@ -11,7 +11,7 @@ namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
 public sealed class EventAdapter: IWriteEventAdapter
 {
-    private readonly string[] _tags = DataGenerator.Tags;
+    private readonly string[] _tags = Const.Tags;
     public string Manifest(object evt) => string.Empty;
 
     public object ToJournal(object evt)

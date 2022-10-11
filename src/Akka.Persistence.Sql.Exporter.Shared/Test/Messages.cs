@@ -6,34 +6,43 @@
 
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
-public sealed class Store
+public interface IHasEntityId
 {
-    public readonly int Value;
+    public string EntityId { get; }
+}
 
-    public Store(int value)
+public sealed class Finish: IHasEntityId
+{
+    public Finish(int entityId)
     {
-        Value = value;
+        EntityId = (entityId % Const.MaxEntities).ToString();
     }
+
+    public string EntityId { get; }
 }
 
-public sealed class Stored
+public sealed class ShardedMessage: IHasEntityId
 {
-    public readonly int Value;
-
-    public Stored(int value)
+    public ShardedMessage(int message)
     {
-        Value = value;
+        EntityId = (message % Const.MaxEntities).ToString();
+        Message = message;
     }
+
+    public string EntityId { get; }
+    
+    public int Message { get; }
 }
 
-public sealed class Finish
+public sealed class AdaptedShardedMessage: IHasEntityId
 {
-    public static readonly Finish Instance = new();
-    private Finish() { }
-}
+    public AdaptedShardedMessage(int message)
+    {
+        EntityId = (message % Const.MaxEntities).ToString();
+        Message = message;
+    }
 
-public sealed class Ready
-{
-    public static readonly Ready Instance = new();
-    private Ready() { }
+    public string EntityId { get; }
+    
+    public int Message { get; }
 }

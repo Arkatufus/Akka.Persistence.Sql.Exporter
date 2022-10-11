@@ -11,6 +11,7 @@ using Akka.Actor;
 using Akka.Cluster.Hosting;
 using Akka.Cluster.Sharding;
 using Akka.Hosting;
+using Akka.Remote.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -32,9 +33,9 @@ public sealed class TestCluster: IAsyncDisposable
     {
         _clusterStartTimeout = TimeSpan.FromSeconds(clusterStartTimeoutInSeconds);
         
-        _host1 = CreateHost(setup);
-        _host2 = CreateHost(setup);
-        _host3 = CreateHost(setup);
+        _host1 = CreateHost(setup, 12552);
+        _host2 = CreateHost(setup, 12553);
+        _host3 = CreateHost(setup, 12554);
     }
 
     public bool IsStarted => ShardRegions.Count > 0;
@@ -55,7 +56,7 @@ public sealed class TestCluster: IAsyncDisposable
         ShardRegions = ShardRegions.Add(_host3.Services.GetRequiredService<ActorRegistry>().Get<ShardRegion>());
     }
     
-    private static IHost CreateHost(Action<AkkaConfigurationBuilder, IServiceProvider> setup)
+    private static IHost CreateHost(Action<AkkaConfigurationBuilder, IServiceProvider> setup, int port)
         => new HostBuilder()
             .ConfigureLogging(logger => { logger.AddConsole(); })
             .ConfigureServices((_, services) =>
@@ -64,7 +65,8 @@ public sealed class TestCluster: IAsyncDisposable
                 {
                     builder
                         .AddHocon("akka.cluster.min-nr-of-members = 3", HoconAddMode.Prepend)
-                        .ConfigureLoggers(logger => logger.LogLevel = LogLevel.DebugLevel)
+                        .ConfigureLoggers(logger => logger.LogLevel = LogLevel.InfoLevel)
+                        .WithRemoting("localhost", port)
                         .WithClustering()
                         .WithShardRegion<ShardRegion>(
                             "test",

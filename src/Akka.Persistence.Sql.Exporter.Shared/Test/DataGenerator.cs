@@ -6,10 +6,10 @@
 
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
+using Akka.Actor;
+
 public sealed class DataGenerator 
 {
-    public static readonly string[] Tags = { "Tag1", "Tag2", "Tag3", "Tag4" };
-
     private readonly TestCluster _testCluster;
 
     public DataGenerator(TestCluster testCluster)
@@ -23,7 +23,30 @@ public sealed class DataGenerator
             throw new Exception("Test cluster has not been started yet.");
 
         var region = _testCluster.ShardRegions.First();
+
+        foreach (var i in Enumerable.Range(0, 200))
+        {
+            region.Tell(i);
+        }
+
+        foreach (var i in Enumerable.Range(200, 200))
+        {
+            region.Tell(i.ToString());
+        }
         
+        foreach (var i in Enumerable.Range(400, 200))
+        {
+            region.Tell(new ShardedMessage(i));
+        }
+        
+        var tasks = Enumerable.Range(0, 100).Select(id => region.Ask<(string, int)>(new Finish(id))).ToList();
+        while (tasks.Count > 0)
+        {
+            var task = await Task.WhenAny(tasks);
+            tasks.Remove(task);
+            var (id, count) = task.Result;
+            Console.WriteLine($">>>>> Entity {id} persisted {count} items");
+        }
     }
 
 }

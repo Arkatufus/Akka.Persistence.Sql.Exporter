@@ -4,24 +4,18 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Text;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using SharpCompress.Archives;
-using SharpCompress.Archives.Tar;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using SharpCompress.Readers.Tar;
 
 namespace Akka.Persistence.Sql.Exporter.Shared;
 
 public abstract class DockerContainer: IAsyncDisposable, IDisposable
 {
     private Stream? _stream;
-    private CancellationTokenSource _logsCts = new CancellationTokenSource();
+    private readonly CancellationTokenSource _logsCts = new ();
     private Task? _readDockerTask;
 
     protected DockerContainer(string imageName, string tag, string containerName)
@@ -52,6 +46,7 @@ public abstract class DockerContainer: IAsyncDisposable, IDisposable
     public string ContainerName { get; }
 
     protected virtual string? ReadyMarker { get; } = null;
+    protected virtual int ReadyCount { get; } = 1;
 
     protected virtual TimeSpan ReadyTimeout { get; } = TimeSpan.FromMinutes(1);
     
@@ -128,10 +123,15 @@ public abstract class DockerContainer: IAsyncDisposable, IDisposable
     private async Task AwaitUntilReadyAsync(string marker, TimeSpan timeout)
     {
         var tcs = new TaskCompletionSource<string>();
+        var count = 0;
         void LineProcessor(object? sender, OutputReceivedArgs args)
         {
             if(args.Output.Contains(marker))
-                tcs.SetResult(args.Output);
+            {
+                count++;
+                if(ReadyCount == count)
+                    tcs.SetResult(args.Output);
+            }
         }
 
         OnStdOut += LineProcessor;
@@ -158,7 +158,8 @@ public abstract class DockerContainer: IAsyncDisposable, IDisposable
         {
             var createResponse = await Client.Exec.ExecCreateContainerAsync(ContainerName, new ContainerExecCreateParameters
             {
-                Detach = true,
+                AttachStdout = true,
+                AttachStderr = true,
                 Cmd = command
             });
             id = createResponse.ID;
@@ -178,14 +179,17 @@ public abstract class DockerContainer: IAsyncDisposable, IDisposable
 
             if (!string.IsNullOrWhiteSpace(stdErr))
             {
-                Console.WriteLine(">>>>>>>> StdErr");
-                Console.WriteLine(stdErr);
-                Console.WriteLine("<<<<<<<< StdErr");
+                throw new Exception(stdErr);
             }
         }
     }
 
-    public async Task DownloadAsync(string path, string outputPath, string outputFile, bool extract = false)
+    public async Task DownloadAsync(
+        string path,
+        string outputPath,
+        string outputFile,
+        bool extract = false,
+        bool createDirectory = true)
     {
         var response = await Client.Containers.GetArchiveFromContainerAsync(
             id: ContainerName,
@@ -204,7 +208,7 @@ public abstract class DockerContainer: IAsyncDisposable, IDisposable
             if (extract)
             {
                 var directoryName = Path.GetFileNameWithoutExtension(outputFile);
-                var extractPath = Path.Combine(outputPath, directoryName);
+                var extractPath = createDirectory ? Path.Combine(outputPath, directoryName) : outputPath;
                 if (!Directory.Exists(extractPath))
                     Directory.CreateDirectory(extractPath);
                 using var archive = ArchiveFactory.Open(downloadFile);

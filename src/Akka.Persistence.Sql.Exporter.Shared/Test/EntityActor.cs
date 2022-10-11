@@ -5,55 +5,19 @@
 // -----------------------------------------------------------------------
 
 using Akka.Actor;
-using Akka.Cluster.Sharding;
 using Akka.Event;
 using Akka.Persistence.Journal;
 
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
-public sealed class ShardedMessage
-{
-    public ShardedMessage(string entityId, int message)
-    {
-        EntityId = entityId;
-        Message = message;
-    }
-
-    public string EntityId { get; }
-    
-    public int Message { get; }
-}
-
-public sealed class MessageExtractor : HashCodeMessageExtractor
-{
-    // We're only doing 100 entities
-    private const int MaxEntities = 100;
-
-    /// <summary>
-    /// We only ever run three nodes, so ~10 shards per node
-    /// </summary>
-    public MessageExtractor() : base(30)
-    {
-    }
-
-    public override string? EntityId(object message)
-        => message switch
-        {
-            int i => (i % MaxEntities).ToString(),
-            string str => (int.Parse(str) % MaxEntities).ToString(),
-            ShardedMessage msg => msg.EntityId,
-            ShardingEnvelope msg => msg.EntityId,
-            _ => null
-        };
-}
-
 public sealed class EntityActor : ReceivePersistentActor
 {
     public static Props Props(string id) => Actor.Props.Create(() => new EntityActor(id));
 
-    private ILoggingAdapter _log;
+    private readonly ILoggingAdapter _log;
     private int _total;
-    private readonly string[] _tags = DataGenerator.Tags;
+    private int _persisted;
+    private readonly string[] _tags = Const.Tags;
 
     public EntityActor(string persistenceId)
     {
@@ -64,11 +28,13 @@ public sealed class EntityActor : ReceivePersistentActor
         Command<int>(msg => Persist(msg, i =>
         {
             _total += i;
+            _persisted++;
         }));
 
         Command<string>(msg => Persist(msg, str =>
         {
             _total += int.Parse(str);
+            _persisted++;
         }));
 
         Command<ShardedMessage>(msg =>
@@ -83,24 +49,44 @@ public sealed class EntityActor : ReceivePersistentActor
             
             if(obj is Tagged tagged)
             {
-                Persist(tagged, sm => { _total += ((ShardedMessage)sm.Payload).Message; });
+                Persist(tagged, sm =>
+                {
+                    _total += ((ShardedMessage)sm.Payload).Message;
+                    _persisted++;
+                });
             }
             else
             {
-                Persist(msg, sm => { _total += sm.Message; });
+                Persist(msg, sm =>
+                {
+                    _total += sm.Message;
+                    _persisted++;
+                });
             }
         });
 
         Command<Finish>(_ =>
         {
-            Sender.Tell(_total);
+            Sender.Tell((PersistenceId, _persisted));
         });
 
-        Recover<int>(msg => _total += msg);
+        Recover<int>(msg =>
+        {
+            _total += msg;
+            _persisted++;
+        });
         
-        Recover<string>(msg => _total += int.Parse(msg));
+        Recover<string>(msg =>
+        {
+            _total += int.Parse(msg);
+            _persisted++;
+        });
         
-        Recover<ShardedMessage>(msg => _total += msg.Message);
+        Recover<ShardedMessage>(msg =>
+        {
+            _total += msg.Message;
+            _persisted++;
+        });
     }
 
     public override string PersistenceId { get; }
