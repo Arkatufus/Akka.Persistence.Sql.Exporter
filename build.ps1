@@ -139,4 +139,12 @@ if("sqlserver" -eq $BuildType -or "all" -eq $BuildType) {
     $Output += "Akka.Persistence.SqlServer exporter docker image name: $($sqlserver.DockerName)"
 }
 
+if("postgresql" -eq $BuildType -or "all" -eq $BuildType) {
+    $postgresql = [Builder]::new("PostgreSql")
+    $postgresql.BuildProject()
+    $postgresql.BuildDockerImage()
+    $postgresql.CleanUp()
+    $Output += "Akka.Persistence.PostgreSql exporter docker image name: $($postgresql.DockerName)"
+}
+
 Write-Host $Output -Separator "`n" -ForegroundColor White

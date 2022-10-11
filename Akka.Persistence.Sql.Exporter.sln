@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{8975719B
 		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgreSql.Exporter", "src\PostgreSql.Exporter\PostgreSql.Exporter.csproj", "{6751E029-5644-4675-812A-4DF61CCD09EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{5ED55E80-132B-485C-9A07-E927BB27AE07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5ED55E80-132B-485C-9A07-E927BB27AE07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5ED55E80-132B-485C-9A07-E927BB27AE07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6751E029-5644-4675-812A-4DF61CCD09EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6751E029-5644-4675-812A-4DF61CCD09EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6751E029-5644-4675-812A-4DF61CCD09EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6751E029-5644-4675-812A-4DF61CCD09EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
