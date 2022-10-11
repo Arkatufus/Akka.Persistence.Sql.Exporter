@@ -6,7 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Akka.Persistence.Sqlite" Version="$(AkkaVersion)" />
+        <!-- The version of this package is used by the build script. -->
+        <!-- !!! DO NOT USE $(AkkaVersion) !!!! -->
+        <PackageReference Include="Akka.Persistence.Sqlite" Version="1.4.43" />
     </ItemGroup>
 
     <ItemGroup>
