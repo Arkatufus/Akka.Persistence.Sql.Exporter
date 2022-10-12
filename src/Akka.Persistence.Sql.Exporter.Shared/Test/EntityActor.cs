@@ -17,7 +17,6 @@ public sealed class EntityActor : ReceivePersistentActor
     private readonly ILoggingAdapter _log;
     private int _total;
     private int _persisted;
-    private readonly string[] _tags = Const.Tags;
 
     public EntityActor(string persistenceId)
     {
@@ -39,29 +38,45 @@ public sealed class EntityActor : ReceivePersistentActor
 
         Command<ShardedMessage>(msg =>
         {
-            object obj = (msg.Message % 4) switch
+            var obj = msg.ToTagged(msg.Message);
+            switch (obj)
             {
-                0 => msg,
-                1 => new Tagged(msg, new[] { _tags[0] }),
-                2 => new Tagged(msg, new[] { _tags[0], _tags[1] }),
-                _ => new Tagged(msg, new[] { _tags[0], _tags[1], _tags[2] })
-            };
-            
-            if(obj is Tagged tagged)
-            {
-                Persist(tagged, sm =>
-                {
-                    _total += ((ShardedMessage)sm.Payload).Message;
-                    _persisted++;
-                });
+                case Tagged tagged:
+                    Persist(tagged, sm =>
+                    {
+                        _total += ((ShardedMessage)sm.Payload).Message;
+                        _persisted++;
+                    });
+                    break;
+                default:
+                    Persist(msg, sm =>
+                    {
+                        _total += sm.Message;
+                        _persisted++;
+                    });
+                    break;
             }
-            else
+        });
+
+        Command<CustomShardedMessage>(msg =>
+        {
+            var obj = msg.ToTagged(msg.Message);
+            switch (obj)
             {
-                Persist(msg, sm =>
-                {
-                    _total += sm.Message;
-                    _persisted++;
-                });
+                case Tagged tagged:
+                    Persist(tagged, sm =>
+                    {
+                        _total += ((CustomShardedMessage)sm.Payload).Message;
+                        _persisted++;
+                    });
+                    break;
+                default:
+                    Persist(msg, sm =>
+                    {
+                        _total += sm.Message;
+                        _persisted++;
+                    });
+                    break;
             }
         });
 

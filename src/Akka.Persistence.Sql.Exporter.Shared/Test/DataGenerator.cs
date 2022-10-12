@@ -24,19 +24,25 @@ public sealed class DataGenerator
 
         var region = _testCluster.ShardRegions.First();
 
-        foreach (var i in Enumerable.Range(0, 200))
+        // 4 test types: int, string, ShardedMessage, and CustomShardedMessage
+        foreach (var i in Enumerable.Range(0, Utils.MessagesPerType))
         {
             region.Tell(i);
         }
 
-        foreach (var i in Enumerable.Range(200, 200))
+        foreach (var i in Enumerable.Range(0, Utils.MessagesPerType))
         {
             region.Tell(i.ToString());
         }
         
-        foreach (var i in Enumerable.Range(400, 200))
+        foreach (var i in Enumerable.Range(0, Utils.MessagesPerType))
         {
             region.Tell(new ShardedMessage(i));
+        }
+        
+        foreach (var i in Enumerable.Range(0, Utils.MessagesPerType))
+        {
+            region.Tell(new CustomShardedMessage(i));
         }
         
         var tasks = Enumerable.Range(0, 100).Select(id => region.Ask<(string, int)>(new Finish(id))).ToList();

@@ -15,7 +15,7 @@ public sealed class Finish: IHasEntityId
 {
     public Finish(int entityId)
     {
-        EntityId = (entityId % Const.MaxEntities).ToString();
+        EntityId = (entityId % Utils.MaxEntities).ToString();
     }
 
     public string EntityId { get; }
@@ -25,7 +25,7 @@ public sealed class ShardedMessage: IHasEntityId
 {
     public ShardedMessage(int message)
     {
-        EntityId = (message % Const.MaxEntities).ToString();
+        EntityId = message.ToEntityId();
         Message = message;
     }
 
@@ -34,11 +34,11 @@ public sealed class ShardedMessage: IHasEntityId
     public int Message { get; }
 }
 
-public sealed class AdaptedShardedMessage: IHasEntityId
+public sealed class CustomShardedMessage: IHasEntityId
 {
-    public AdaptedShardedMessage(int message)
+    public CustomShardedMessage(int message)
     {
-        EntityId = (message % Const.MaxEntities).ToString();
+        EntityId = message.ToEntityId();
         Message = message;
     }
 

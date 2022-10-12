@@ -11,6 +11,7 @@ using Akka.Actor;
 using Akka.Cluster.Hosting;
 using Akka.Cluster.Sharding;
 using Akka.Hosting;
+using Akka.Persistence.Hosting;
 using Akka.Remote.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,13 +30,14 @@ public sealed class TestCluster: IAsyncDisposable
 
     public TestCluster(
         Action<AkkaConfigurationBuilder, IServiceProvider> setup,
+        string journalId,
         float clusterStartTimeoutInSeconds = 10)
     {
         _clusterStartTimeout = TimeSpan.FromSeconds(clusterStartTimeoutInSeconds);
         
-        _host1 = CreateHost(setup, 12552);
-        _host2 = CreateHost(setup, 12553);
-        _host3 = CreateHost(setup, 12554);
+        _host1 = CreateHost(setup, 12552, journalId);
+        _host2 = CreateHost(setup, 12553, journalId);
+        _host3 = CreateHost(setup, 12554, journalId);
     }
 
     public bool IsStarted => ShardRegions.Count > 0;
@@ -56,16 +58,25 @@ public sealed class TestCluster: IAsyncDisposable
         ShardRegions = ShardRegions.Add(_host3.Services.GetRequiredService<ActorRegistry>().Get<ShardRegion>());
     }
     
-    private static IHost CreateHost(Action<AkkaConfigurationBuilder, IServiceProvider> setup, int port)
+    private static IHost CreateHost(Action<AkkaConfigurationBuilder, IServiceProvider> setup, int port, string journalId)
         => new HostBuilder()
             .ConfigureLogging(logger => { logger.AddConsole(); })
             .ConfigureServices((_, services) =>
             {
                 services.AddAkka("TestSystem", (builder, provider) =>
                 {
+                    var journalBuilder = new AkkaPersistenceJournalBuilder(journalId, builder);
+                    journalBuilder.AddWriteEventAdapter<EventAdapter>(
+                        eventAdapterName: "customMessage",
+                        boundTypes: new[] { typeof(int), typeof(string) });
+                    
                     builder
-                        .AddHocon("akka.cluster.min-nr-of-members = 3", HoconAddMode.Prepend)
                         .ConfigureLoggers(logger => logger.LogLevel = LogLevel.InfoLevel)
+                        .AddHocon("akka.cluster.min-nr-of-members = 3", HoconAddMode.Prepend)
+                        .WithCustomSerializer(
+                            serializerIdentifier: "customSerializer",
+                            boundTypes: new [] {typeof(CustomShardedMessage)}, 
+                            serializerFactory: system => new CustomSerializer(system))
                         .WithRemoting("localhost", port)
                         .WithClustering()
                         .WithShardRegion<ShardRegion>(

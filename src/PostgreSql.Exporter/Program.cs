@@ -18,7 +18,7 @@ void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)
         .WithPostgreSqlPersistence(docker.ConnectionString, autoInitialize:true);
 }
 
-await using var testCluster = new TestCluster(Setup);
+await using var testCluster = new TestCluster(Setup, "postgresql");
 await testCluster.StartAsync();
 
 var generator = new DataGenerator(testCluster);
@@ -31,3 +31,4 @@ Console.WriteLine(">>>>>>>>>>> downloading backup");
 await docker.DownloadAsync("backup.sql", docker.OutputPath, "backup.tar", true, false);
 
 Console.WriteLine(">>>>>>>>>>> DONE!");
+Console.ReadKey();

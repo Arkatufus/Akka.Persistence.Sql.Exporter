@@ -21,7 +21,7 @@ void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)
         .WithSqlServerPersistence(docker.ConnectionString, autoInitialize:true);
 }
 
-await using var testCluster = new TestCluster(Setup);
+await using var testCluster = new TestCluster(Setup, "sql-server");
 await testCluster.StartAsync();
 
 var generator = new DataGenerator(testCluster);

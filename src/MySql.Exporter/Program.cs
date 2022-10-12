@@ -37,7 +37,7 @@ void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)
         .AddHocon(config);
 }
 
-await using var testCluster = new TestCluster(Setup);
+await using var testCluster = new TestCluster(Setup, "mysql");
 await testCluster.StartAsync();
 
 var generator = new DataGenerator(testCluster);

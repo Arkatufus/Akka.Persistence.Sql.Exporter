@@ -20,8 +20,8 @@ public sealed class MessageExtractor : HashCodeMessageExtractor
     public override string? EntityId(object message)
         => message switch
         {
-            int i => (i % Const.MaxEntities).ToString(),
-            string str => (int.Parse(str) % Const.MaxEntities).ToString(),
+            int i => i.ToEntityId(),
+            string str => int.Parse(str).ToEntityId(),
             IHasEntityId msg => msg.EntityId,
             ShardingEnvelope msg => msg.EntityId,
             _ => null
