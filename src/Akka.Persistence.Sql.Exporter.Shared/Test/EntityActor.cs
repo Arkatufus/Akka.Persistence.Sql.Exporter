@@ -17,6 +17,11 @@ public sealed class EntityActor : ReceivePersistentActor
     private readonly ILoggingAdapter _log;
     private int _total;
     private int _persisted;
+    private StateSnapshot _lastSnapshot = StateSnapshot.Empty;
+    private StateSnapshot _savingSnapshot = StateSnapshot.Empty;
+
+    private bool _clearing;
+    private IActorRef? _sender;
 
     public EntityActor(string persistenceId)
     {
@@ -82,9 +87,71 @@ public sealed class EntityActor : ReceivePersistentActor
 
         Command<Finish>(_ =>
         {
-            Sender.Tell((PersistenceId, _persisted));
+            Sender.Tell((PersistenceId, _lastSnapshot, _total, _persisted));
         });
 
+        Command<TakeSnapshotAndClear>(_ =>
+        {
+            _sender = Sender;
+            _clearing = true;
+            _savingSnapshot = new StateSnapshot(_total, _persisted);
+            SaveSnapshot(_savingSnapshot);
+        });
+        
+        Command<TakeSnapshot>(_ =>
+        {
+            _sender = Sender;
+            _savingSnapshot = new StateSnapshot(_total, _persisted);
+            SaveSnapshot(_savingSnapshot);
+        });
+        
+        Command<SaveSnapshotSuccess>(msg =>
+        {
+            _lastSnapshot = _savingSnapshot;
+            _savingSnapshot = StateSnapshot.Empty;
+            
+            if(!_clearing)
+            {
+                _sender.Tell((PersistenceId, _lastSnapshot));
+                return;
+            }
+
+            _clearing = false;
+            DeleteMessages(msg.Metadata.SequenceNr);
+        });
+        
+        Command<SaveSnapshotFailure>(fail =>
+        {
+            _log.Error(fail.Cause, "SaveSnapshot failed!");
+            _savingSnapshot = StateSnapshot.Empty;
+            _sender.Tell((PersistenceId, _lastSnapshot));
+        });
+        
+        Command<DeleteMessagesSuccess>(_ =>
+        {
+            _sender.Tell((PersistenceId, _lastSnapshot));
+        });
+        
+        Command<DeleteMessagesFailure>(fail =>
+        {
+            _log.Error(fail.Cause, "DeleteMessages failed!");
+            _sender.Tell((PersistenceId, _lastSnapshot));
+        });
+
+        Command<RecoveryCompleted>(_ =>
+        {
+            _log.Info($"{persistenceId}: Recovery completed. State: [Total:{_total}, Persisted:{_persisted}.]");
+        });
+        
+        Recover<SnapshotOffer>(offer =>
+        {
+            _lastSnapshot = (StateSnapshot) offer.Snapshot;
+            _total = _lastSnapshot.Total;
+            _persisted = _lastSnapshot.Persisted;
+            _log.Info($"{persistenceId}: Snapshot loaded. State: [Total:{_total}, Persisted:{_persisted}.] " +
+                      $"Metadata: [SequenceNr:{offer.Metadata.SequenceNr}, Timestamp:{offer.Metadata.Timestamp}]");
+        });
+        
         Recover<int>(msg =>
         {
             _total += msg;
@@ -98,6 +165,12 @@ public sealed class EntityActor : ReceivePersistentActor
         });
         
         Recover<ShardedMessage>(msg =>
+        {
+            _total += msg.Message;
+            _persisted++;
+        });
+        
+        Recover<CustomShardedMessage>(msg =>
         {
             _total += msg.Message;
             _persisted++;

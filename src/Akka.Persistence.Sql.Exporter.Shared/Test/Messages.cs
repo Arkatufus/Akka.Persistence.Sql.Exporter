@@ -21,6 +21,26 @@ public sealed class Finish: IHasEntityId
     public string EntityId { get; }
 }
 
+public sealed class TakeSnapshotAndClear: IHasEntityId
+{
+    public TakeSnapshotAndClear(int entityId)
+    {
+        EntityId = (entityId % Utils.MaxEntities).ToString();
+    }
+
+    public string EntityId { get; }
+}
+
+public sealed class TakeSnapshot: IHasEntityId
+{
+    public TakeSnapshot(int entityId)
+    {
+        EntityId = (entityId % Utils.MaxEntities).ToString();
+    }
+
+    public string EntityId { get; }
+}
+
 public sealed class ShardedMessage: IHasEntityId
 {
     public ShardedMessage(int message)
@@ -45,4 +65,18 @@ public sealed class CustomShardedMessage: IHasEntityId
     public string EntityId { get; }
     
     public int Message { get; }
+}
+
+public sealed class StateSnapshot
+{
+    public static readonly StateSnapshot Empty = new StateSnapshot(0, 0);
+    
+    public StateSnapshot(int total, int persisted)
+    {
+        Total = total;
+        Persisted = persisted;
+    }
+
+    public int Total { get; }
+    public int Persisted { get; }
 }

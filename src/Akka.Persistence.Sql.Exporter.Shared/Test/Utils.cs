@@ -12,7 +12,7 @@ public static class Utils
 {
     // We're only doing 100 entities
     public const int MaxEntities = 100;
-    public const int TaggedVariants = 3;
+    private const int TaggedVariants = 3;
     public const int MessagesPerType = MaxEntities * TaggedVariants;
 
     public static readonly string[] Tags = { "Tag1", "Tag2", "Tag3", "Tag4" };

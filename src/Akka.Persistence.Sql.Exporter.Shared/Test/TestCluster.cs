@@ -72,7 +72,9 @@ public sealed class TestCluster: IAsyncDisposable
                     
                     builder
                         .ConfigureLoggers(logger => logger.LogLevel = LogLevel.InfoLevel)
-                        .AddHocon("akka.cluster.min-nr-of-members = 3", HoconAddMode.Prepend)
+                        .AddHocon(@"
+akka.cluster.min-nr-of-members = 3
+akka.cluster.sharding.snapshot-after = 20", HoconAddMode.Prepend)
                         .WithCustomSerializer(
                             serializerIdentifier: "customSerializer",
                             boundTypes: new [] {typeof(CustomShardedMessage)}, 
@@ -120,6 +122,9 @@ public sealed class TestCluster: IAsyncDisposable
         }
         
         cts.Cancel();
+        
+        // wait 2 seconds for everything to settle down
+        await Task.Delay(2000, token);
     }
 
     private async Task ShutdownAsync()

@@ -30,4 +30,7 @@ await docker.DumpDatabaseAsync("backup.sql");
 Console.WriteLine(">>>>>>>>>>> downloading backup");
 await docker.DownloadAsync("backup.sql", docker.OutputPath, "backup.tar", true, false);
 
+Console.WriteLine(">>>>>>>>>>> Shutting down test cluster");
+await testCluster.DisposeAsync();
+
 Console.WriteLine(">>>>>>>>>>> DONE!");

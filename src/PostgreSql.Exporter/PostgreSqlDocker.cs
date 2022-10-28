@@ -43,6 +43,7 @@ public class PostgreSqlDocker: DockerContainer
             $"POSTGRES_USER={User}",
             "PGDATA=/data"
         };
+        parameters.Cmd = new List<string> { "postgres", "-c", "max_connections=300" };
     }
     
     protected override async Task AfterContainerStartedAsync(CancellationToken cancellationToken)

@@ -47,4 +47,7 @@ await testCluster.StartAsync();
 var generator = new DataGenerator(testCluster);
 await generator.GenerateAsync();
 
+Console.WriteLine(">>>>>>>>>>> Shutting down test cluster");
+await testCluster.DisposeAsync();
+
 Console.WriteLine(">>>>>>>>>>> DONE!");

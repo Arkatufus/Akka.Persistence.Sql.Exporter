@@ -28,7 +28,9 @@ var generator = new DataGenerator(testCluster);
 await generator.GenerateAsync();
 
 Console.WriteLine(">>>>>>>>>>> downloading backup");
-
 await docker.DownloadAsync("/var/opt/mssql/data/", docker.OutputPath, "data.tar");
+
+Console.WriteLine(">>>>>>>>>>> Shutting down test cluster");
+await testCluster.DisposeAsync();
 
 Console.WriteLine(">>>>>>>>>>> DONE!");

@@ -47,7 +47,7 @@ public class MySqlDocker : DockerContainer
     {
         try
         {
-            await ExecuteCommandAsync("sh", "-c",  $"exec mysqldump -u{User} -p'{Password}' {DatabaseName} > {outputFile}");
+            await ExecuteCommandAsync("mysqldump", $"-u{User}", $"-p'{Password}'", $"{DatabaseName} > {outputFile}");
         }
         catch (Exception e)
         {

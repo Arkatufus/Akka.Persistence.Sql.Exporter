@@ -43,12 +43,10 @@ await testCluster.StartAsync();
 var generator = new DataGenerator(testCluster);
 await generator.GenerateAsync();
 
-//Console.WriteLine(">>>>>>>>>>> Creating backup");
-//await docker.DumpDatabase("backup.sql");
-            
 Console.WriteLine(">>>>>>>>>>> downloading backup");
-//await docker.DownloadAsync("backup.sql", docker.OutputPath, "backup.tar");
-            
 await docker.DownloadAsync("/var/lib/mysql/", docker.OutputPath, "mysql.tar");
             
+Console.WriteLine(">>>>>>>>>>> Shutting down test cluster");
+await testCluster.DisposeAsync();
+
 Console.WriteLine(">>>>>>>>>>> DONE!");
