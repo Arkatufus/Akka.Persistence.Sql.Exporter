@@ -65,11 +65,6 @@ public sealed class TestCluster: IAsyncDisposable
             {
                 services.AddAkka("TestSystem", (builder, provider) =>
                 {
-                    var journalBuilder = new AkkaPersistenceJournalBuilder(journalId, builder);
-                    journalBuilder.AddWriteEventAdapter<EventAdapter>(
-                        eventAdapterName: "customMessage",
-                        boundTypes: new[] { typeof(int), typeof(string) });
-                    
                     builder
                         .ConfigureLoggers(logger => logger.LogLevel = LogLevel.InfoLevel)
                         .AddHocon(@"
@@ -89,7 +84,13 @@ akka.cluster.sharding.snapshot-after = 20", HoconAddMode.Prepend)
                             {
                                 RememberEntities = true,
                                 StateStoreMode = StateStoreMode.Persistence
-                            });
+                            })
+                        .WithJournal(journalId, journalBuilder =>
+                        {
+                            journalBuilder.AddWriteEventAdapter<EventAdapter>(
+                                eventAdapterName: "customMessage",
+                                boundTypes: new[] { typeof(int), typeof(string) });
+                        });
                     
                     setup(builder, provider);
                 });
