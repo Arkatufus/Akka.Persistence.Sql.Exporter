@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(NetCoreLibraryFramework)</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>9.0</LangVersion>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Akka.Cluster.Sharding" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Query" Version="$(AkkaVersion)" />
+        <PackageReference Include="Akka.Persistence.Query.Sql" Version="$(AkkaVersion)" />
+    </ItemGroup>
+
+</Project>

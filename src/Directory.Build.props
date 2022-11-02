@@ -213,11 +213,11 @@
         </License>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup>
+        <NetCoreLibraryFramework>netstandard2.0</NetCoreLibraryFramework>
         <NetCoreFramework>net6.0</NetCoreFramework>
         <AkkaHostingVersion>0.5.0</AkkaHostingVersion>
         <AkkaVersion>1.4.43</AkkaVersion>

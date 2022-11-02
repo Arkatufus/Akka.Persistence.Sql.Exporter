@@ -12,6 +12,7 @@ using Akka.Cluster.Hosting;
 using Akka.Cluster.Sharding;
 using Akka.Hosting;
 using Akka.Persistence.Hosting;
+using Akka.Persistence.Sql.Compat.Common;
 using Akka.Remote.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>$(NetCoreFramework)</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,6 +14,10 @@
         <PackageReference Include="Akka.Persistence.Query.Sql" Version="$(AkkaVersion)" />
         <PackageReference Include="Docker.DotNet" Version="3.125.12" />
         <PackageReference Include="SharpCompress" Version="0.32.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Akka.Persistence.Sql.Compat.Common\Akka.Persistence.Sql.Compat.Common.csproj" />
     </ItemGroup>
 
 </Project>

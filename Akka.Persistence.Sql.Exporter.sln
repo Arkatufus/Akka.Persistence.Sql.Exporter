@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{8975719B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgreSql.Exporter", "src\PostgreSql.Exporter\PostgreSql.Exporter.csproj", "{6751E029-5644-4675-812A-4DF61CCD09EE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akka.Persistence.Sql.Compat.Common", "src\Akka.Persistence.Sql.Compat.Common\Akka.Persistence.Sql.Compat.Common.csproj", "{835E3257-495E-4C80-BB81-3C5D5F8BC285}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{6751E029-5644-4675-812A-4DF61CCD09EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6751E029-5644-4675-812A-4DF61CCD09EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6751E029-5644-4675-812A-4DF61CCD09EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{835E3257-495E-4C80-BB81-3C5D5F8BC285}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{835E3257-495E-4C80-BB81-3C5D5F8BC285}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{835E3257-495E-4C80-BB81-3C5D5F8BC285}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{835E3257-495E-4C80-BB81-3C5D5F8BC285}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

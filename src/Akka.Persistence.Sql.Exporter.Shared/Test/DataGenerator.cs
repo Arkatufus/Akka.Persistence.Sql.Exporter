@@ -4,6 +4,8 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using Akka.Persistence.Sql.Compat.Common;
+
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
 using Akka.Actor;

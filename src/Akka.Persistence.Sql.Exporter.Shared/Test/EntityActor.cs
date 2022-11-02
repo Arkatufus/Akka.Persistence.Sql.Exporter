@@ -7,6 +7,7 @@
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence.Journal;
+using Akka.Persistence.Sql.Compat.Common;
 
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
 
