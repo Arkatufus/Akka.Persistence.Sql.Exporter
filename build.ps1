@@ -1,18 +1,49 @@
 [CmdletBinding()]
 Param(
     [Parameter(
-            Mandatory=$True,
-            HelpMessage = "Build type, must be one of these: mysql, sqlite, sqlserver, postgresql, or all")]
+            Mandatory=$false,
+            HelpMessage = "Build type, must be one of these: 'mysql', 'sqlite', 'sqlserver', 'postgresql', or 'all'")]
+    [Alias("t","target")]
     [ValidateSet("mysql", "sqlite", "sqlserver", "postgresql", "all")]
-    [string] $BuildType
+    [string] $BuildType = "all",
+
+    [Parameter(
+        Mandatory=$false,
+        HelpMessage = "Dotnet build configuration, must be either 'Debug' or 'Release'")]
+    [Alias("c")]
+    [ValidateSet("Debug", "Release")]
+    [string] $Configuration = "Release",
+    
+    [Parameter(
+            Mandatory=$false,
+            HelpMessage = "Push built docker image to the repository")]
+    [Alias("p")]
+    [switch] $Push,
+
+    [Parameter(
+            Mandatory=$false,
+            HelpMessage = "The docker hub repository name")]
+    [Alias("r","repo")]
+    [string] $DockerRepo = "",
+
+    [Parameter(
+            Mandatory=$false,
+            HelpMessage = "Also tag the docker image with latest tag")]
+    [Alias("l")]
+    [switch] $Latest
 )
 
 $ErrorActionPreference = 'Stop'
 
 class Builder {
     [string] static $BinFolder
-    [string] static $BuildFolder 
+    [string] static $BuildFolder
     [string] static $OutputFolder
+
+    [string] static $Conf
+    [string] static $DockerRepo
+    [bool] static $Push
+    [bool] static $Latest
 
     [string] $Project
     [string] $ProjectFolder
@@ -26,14 +57,18 @@ class Builder {
         $this.ProjectFolder = "$PSScriptRoot/src/$($this.Project).Exporter"
         $this.ProjectFile = "$($this.ProjectFolder)/$($this.Project).Exporter.csproj"
         $this.Version = $this.GetProjectVersion()
-        $this.DockerName = "akka-persistence-$($this.Project.ToLowerInvariant())-test-data:$($this.Version)"
+        if([Builder]::DockerRepo -eq "") {
+            $this.DockerName = "akka-persistence-$($this.Project.ToLowerInvariant())-test-data"
+        } else {
+            $this.DockerName = "$([Builder]::DockerRepo)/akka-persistence-$($this.Project.ToLowerInvariant())-test-data"
+        }
     }
 
     [void] BuildProject() {
         Write-Host "Building $($this.Project) exporter" -ForegroundColor White
-        dotnet build -c Release "$($this.ProjectFile)" -o $([Builder]::BuildFolder) | Out-Host
+        dotnet build -c $([Builder]::Conf) "$($this.ProjectFile)" -o $([Builder]::BuildFolder) | Out-Host
         if($LASTEXITCODE -ne 0) {
-            exit
+            exit 1
         }
 
         Write-Host "Executing $($this.Project) exporter" -ForegroundColor White
@@ -42,7 +77,7 @@ class Builder {
         dotnet "$([Builder]::BuildFolder)/$($this.Project).Exporter.dll" | Out-Host
         Set-Location $oldLocation
         if($LASTEXITCODE -ne 0) {
-            exit
+            exit 1
         }
     }
 
@@ -68,11 +103,26 @@ class Builder {
         
         $oldLocation = Get-Location
         Set-Location $([Builder]::BinFolder)
-        docker build -t $($this.DockerName) . | Out-Host
+        docker build -t "$($this.DockerName):$($this.Version)" . | Out-Host
         Set-Location $oldLocation
         if($LASTEXITCODE -ne 0) {
-            exit
+            exit 1
         }
+
+        if([Builder]::Latest -eq $true) {
+            docker image tag "$($this.DockerName):$($this.Version)" "$($this.DockerName):latest" | Out-Host
+            if($LASTEXITCODE -ne 0) {
+                exit 1
+            }
+        }
+
+        if([Builder]::Push -eq $true){
+            docker image push -a $this.DockerName | Out-Host
+            if($LASTEXITCODE -ne 0) {
+                exit 1
+            }
+        }
+        
     }
 
     [void] CleanUp() {
@@ -92,21 +142,32 @@ class Builder {
     }
 }
 
-[Builder]::BinFolder = "$PSScriptRoot/bin"
-[Builder]::BuildFolder = "$([Builder]::BinFolder)/build"
-[Builder]::OutputFolder = "$([Builder]::BinFolder)/output"
-$Env:OUTPUT = "$([Builder]::OutputFolder)"
+# Variables
+$BinFolder = "$PSScriptRoot/bin"
+$BuildFolder = "$BinFolder/build"
+$OutputFolder = "$BinFolder/output"
+$Env:OUTPUT = $OutputFolder
 $Output = @()
 
-if( -not (Test-Path -Path $([Builder]::BinFolder)))
+# Set object static variables
+[Builder]::BinFolder = $BinFolder
+[Builder]::BuildFolder = $BuildFolder
+[Builder]::OutputFolder = $OutputFolder
+[Builder]::Conf = $Configuration
+[Builder]::DockerRepo = $DockerRepo
+[Builder]::Push = $Push
+[Builder]::Latest = $Latest
+
+# Create bin folder
+if( -not (Test-Path -Path $BinFolder))
 {
     try 
     {
-        New-Item -Path $([Builder]::BinFolder) -ItemType Directory
+        New-Item -Path $BinFolder -ItemType Directory
     } 
     catch
     {
-        Write-Error -Message "Failed to create directory $([Builder]::BinFolder)"
+        Write-Error -Message "Failed to create directory $BinFolder"
     }
 }
 
@@ -116,8 +177,8 @@ if("sqlite" -eq $BuildType -or "all" -eq $BuildType) {
     $sqlite.BuildProject()
 
     # SqLite project outputs a file, not a docker image
-    $outputFile = "$([Builder]::BinFolder)/akka-persistence-$($sqlite.Project.ToLowerInvariant())-test-data.$($sqlite.Version).db"
-    Copy-Item -Force -Path "$([Builder]::OutputFolder)/database.db" -Destination $outputFile
+    $outputFile = "$BinFolder/akka-persistence-sqlite-test-data.$($sqlite.Version).db"
+    Copy-Item -Force -Path "$OutputFolder/database.db" -Destination $outputFile
     
     $sqlite.CleanUp()
     $Output += "Akka.Persistence.Sqlite exporter database file: $outputFile"
