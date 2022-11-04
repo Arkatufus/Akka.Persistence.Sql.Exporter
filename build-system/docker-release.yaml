@@ -8,7 +8,7 @@ pr: none
 
 variables:
   - name: githubConnectionName
-    value: releases
+    value: AkkaDotNet_Releases
   - name: projectName
     value: "Akka.Persistence.Sql Test Data"
   - name: githubRepositoryName
