@@ -35,7 +35,7 @@ jobs:
         displayName: Docker Build
         inputs:
           filePath: "./build.sh"
-          arguments: --repo $(dockerRepositoryName) --latest --push
+          arguments: --target all --configuration Release --repo $(dockerRepositoryName) --latest --push
         continueOnError: false
       - task: Docker@2
         displayName: Logout of Docker Hub

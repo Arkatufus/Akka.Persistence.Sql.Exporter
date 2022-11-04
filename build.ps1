@@ -179,9 +179,15 @@ if("sqlite" -eq $BuildType -or "all" -eq $BuildType) {
     # SqLite project outputs a file, not a docker image
     $outputFile = "$BinFolder/akka-persistence-sqlite-test-data.$($sqlite.Version).db"
     Copy-Item -Force -Path "$OutputFolder/database.db" -Destination $outputFile
+    $Output += "Akka.Persistence.Sqlite exporter database file: $outputFile"
+    
+    if($Latest -eq $true) {
+        $outputFile = "$BinFolder/akka-persistence-sqlite-test-data.latest.db"
+        Copy-Item -Force -Path "$OutputFolder/database.db" -Destination $outputFile
+        $Output += "Akka.Persistence.Sqlite exporter database file: $outputFile"
+    }
     
     $sqlite.CleanUp()
-    $Output += "Akka.Persistence.Sqlite exporter database file: $outputFile"
 }
 
 if("mysql" -eq $BuildType -or "all" -eq $BuildType) {

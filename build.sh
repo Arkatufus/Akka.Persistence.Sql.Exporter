@@ -175,11 +175,11 @@ cleanup() {
   echo "Cleaning up temporary folders"
   if [[ -d "$BUILD_DIR" ]]; then
     echo "Cleaning $BUILD_DIR"
-    rm -rf "${$BUILD_DIR:?}/"*
+    rm -rf "$BUILD_DIR/"*
   fi
   if [[ -d "$OUTPUT_DIR" ]]; then
     echo "Cleaning $OUTPUT_DIR"
-    rm -rf "${$OUTPUT_DIR:?}/"*
+    rm -rf "$OUTPUT_DIR/"*
   fi
   if [[ -f "$BIN_DIR/Dockerfile" ]]; then
     echo "Removing $BIN_DIR/Dockerfile"
@@ -191,6 +191,9 @@ if [[ "sqlite" = "$TARGET" || "all" = "$TARGET" ]]; then
   build_project "Sqlite"
   # SqLite project outputs a file, not a docker image
   cp -f "$OUTPUT_DIR/database.db" "$BIN_DIR/akka-persistence-sqlite-test-data.$VERSION.db" || exit 1 
+  if [[ $LATEST = True ]]; then
+    cp -f "$OUTPUT_DIR/database.db" "$BIN_DIR/akka-persistence-sqlite-test-data.latest.db" || exit 1 
+  fi
   cleanup
 fi
 
