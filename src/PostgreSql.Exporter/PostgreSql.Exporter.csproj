@@ -13,9 +13,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Akka.Persistence.PostgreSql" Version="1.4.35" />
+      <PackageReference Include="Akka.Persistence.PostgreSql" Version="1.4.45" />
       <PackageReference Include="Akka.Persistence.PostgreSql.Hosting" Version="$(AkkaHostingVersion)" />
-      <PackageReference Include="Microsoft.Data.SqlClient" Version="3.0.1" />
     </ItemGroup>
     
 </Project>
