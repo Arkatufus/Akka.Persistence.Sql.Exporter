@@ -1,3 +1,7 @@
+#### 0.2.0 November 9 2022 ####
+
+* Increased exported data integrity
+
 #### 0.1.0 November 5 2022 ####
 
 Published test data Docker images for SQL plugins
