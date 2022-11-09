@@ -4,6 +4,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Runtime.ExceptionServices;
 using Akka.Persistence.Sql.Compat.Common;
 
 namespace Akka.Persistence.Sql.Exporter.Shared.Test;
@@ -118,7 +119,8 @@ public sealed class DataGenerator
 
     private static async Task UntilSnapshotCompleteAsync(IActorRef region, CancellationToken token)
     {
-        var tasks = Enumerable.Range(0, 100).Select(id => region.Ask<(string, StateSnapshot)>(new TakeSnapshot(id), token)).ToList();
+        var tasks = Enumerable.Range(0, 100).Select(id => 
+            region.Ask<(string?, StateSnapshot?)>(new TakeSnapshot(id), token)).ToList();
         while (tasks.Count > 0)
         {
             var task = await Task.WhenAny(tasks);
@@ -127,15 +129,23 @@ public sealed class DataGenerator
             
             tasks.Remove(task);
             var (id, lastSnapshot) = task.Result;
-            Console.WriteLine(
-                $"{id} snapshot completed. " +
-                $"Snapshot: [Total: {lastSnapshot.Total}, Persisted: {lastSnapshot.Persisted}]");
+            if(lastSnapshot is { })
+            {
+                Console.WriteLine(
+                    $"{id} snapshot completed. " +
+                    $"Snapshot: [Total: {lastSnapshot.Total}, Persisted: {lastSnapshot.Persisted}]");
+            }
+            else
+            {
+                Environment.Exit(1);
+            }
         }
     }
 
     private static async Task UntilSnapshotAndClearCompleteAsync(IActorRef region, CancellationToken token)
     {
-        var tasks = Enumerable.Range(0, 100).Select(id => region.Ask<(string, StateSnapshot)>(new TakeSnapshotAndClear(id), token)).ToList();
+        var tasks = Enumerable.Range(0, 100).Select(id => 
+            region.Ask<(string?, StateSnapshot?)>(new TakeSnapshotAndClear(id), token)).ToList();
         while (tasks.Count > 0)
         {
             var task = await Task.WhenAny(tasks);
@@ -144,9 +154,16 @@ public sealed class DataGenerator
             
             tasks.Remove(task);
             var (id, lastSnapshot) = task.Result;
-            Console.WriteLine(
-                $"{id} snapshot completed, journal cleared. " +
-                $"Snapshot: [Total: {lastSnapshot.Total}, Persisted: {lastSnapshot.Persisted}]");
+            if(lastSnapshot is { })
+            {
+                Console.WriteLine(
+                    $"{id} snapshot completed. " +
+                    $"Snapshot: [Total: {lastSnapshot.Total}, Persisted: {lastSnapshot.Persisted}]");
+            }
+            else
+            {
+                Environment.Exit(1);
+            }
         }
     }
 }

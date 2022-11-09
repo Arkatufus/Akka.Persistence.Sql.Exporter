@@ -22,8 +22,11 @@ public sealed class EntityActor : ReceivePersistentActor
     private StateSnapshot _savingSnapshot = StateSnapshot.Empty;
 
     private bool _clearing;
+    private long _clearSequenceNr;
     private IActorRef? _sender;
 
+    private int _retry;
+    
     public EntityActor(string persistenceId)
     {
         _log = Context.GetLogger();
@@ -96,6 +99,7 @@ public sealed class EntityActor : ReceivePersistentActor
             _sender = Sender;
             _clearing = true;
             _savingSnapshot = new StateSnapshot(_total, _persisted);
+            _retry = 5;
             SaveSnapshot(_savingSnapshot);
         });
         
@@ -103,6 +107,7 @@ public sealed class EntityActor : ReceivePersistentActor
         {
             _sender = Sender;
             _savingSnapshot = new StateSnapshot(_total, _persisted);
+            _retry = 5;
             SaveSnapshot(_savingSnapshot);
         });
         
@@ -117,26 +122,43 @@ public sealed class EntityActor : ReceivePersistentActor
                 return;
             }
 
-            _clearing = false;
-            DeleteMessages(msg.Metadata.SequenceNr);
+            _retry = 5;
+            _clearSequenceNr = msg.Metadata.SequenceNr;
+            DeleteMessages(_clearSequenceNr);
         });
         
         Command<SaveSnapshotFailure>(fail =>
         {
-            _log.Error(fail.Cause, "SaveSnapshot failed!");
-            _savingSnapshot = StateSnapshot.Empty;
-            _sender.Tell((PersistenceId, _lastSnapshot));
+            _retry--;
+            if (_retry < 0)
+            {
+                _log.Error(fail.Cause, "SaveSnapshot failed after 5 retries.");
+                _sender.Tell(((string?)null, (StateSnapshot?)null));
+                return;
+            }
+            
+            _log.Warning(fail.Cause, "SaveSnapshot failed, retrying.");
+            SaveSnapshot(_savingSnapshot);
         });
         
         Command<DeleteMessagesSuccess>(_ =>
         {
+            _clearing = false;
             _sender.Tell((PersistenceId, _lastSnapshot));
         });
         
         Command<DeleteMessagesFailure>(fail =>
         {
-            _log.Error(fail.Cause, "DeleteMessages failed!");
-            _sender.Tell((PersistenceId, _lastSnapshot));
+            _retry--;
+            if (_retry < 0)
+            {
+                _log.Error(fail.Cause, "DeleteMessages failed after 5 retries.");
+                _sender.Tell(((string?)null, (StateSnapshot?)null));
+                return;
+            }
+            
+            _log.Warning(fail.Cause, "DeleteMessages failed, retrying.");
+            DeleteMessages(_clearSequenceNr);
         });
 
         Command<RecoveryCompleted>(_ =>
