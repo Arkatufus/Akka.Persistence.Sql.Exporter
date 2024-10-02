@@ -1,6 +1,6 @@
 # Akka.Persistence.Sql.Exporter
 
-This repository is used to generate data for `Akka.Persistence.Sql` backward compatibility test. It generate a standardized test data and package them inside a docker container.
+This repository is used to generate data for `Akka.Persistence.Sql` backward compatibility test. It generates a standardized test data and package them inside a docker container.
 
 ## Supported Akka Persistence Module
 
@@ -36,7 +36,7 @@ string entityId = ((msg / 3) % MaxEntities).ToString();
 
 ### Round Of Data Generation
 
-A round of data generation is done by sending a sequence of [0..299] integer messages of each data type to the shard region actor. On each round, each entity will persist exactly 12 data consisting each data type in all of the tag variants.
+A round of data generation is done by sending a sequence of [0..299] integer messages of each data type to the shard region actor. On each round, each entity will persist exactly 12 data consisting each data type in all the tag variants.
 
 ### Full Data Generation
 
@@ -79,7 +79,7 @@ var tagCount = (msg % 3);
 
 ## Creating Test Environment
 
-All of the needed environment code are in the `Akka.Persistence.Sql.Exporter.Shared` project. The start code automatically start a 3 node cluster with all of the required configuration set.
+All the needed environment code are in the `Akka.Persistence.Sql.Exporter.Shared` project. The start code automatically start a 3 node cluster with all the required configuration set.
 
 ```csharp
 void Setup(AkkaConfigurationBuilder builder, IServiceProvider provider)

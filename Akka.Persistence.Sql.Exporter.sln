@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{8975719B
 		build.ps1 = build.ps1
 		src\Directory.Build.props = src\Directory.Build.props
 		build.sh = build.sh
+		README.md = README.md
+		RELEASE_NOTES.md = RELEASE_NOTES.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgreSql.Exporter", "src\PostgreSql.Exporter\PostgreSql.Exporter.csproj", "{6751E029-5644-4675-812A-4DF61CCD09EE}"

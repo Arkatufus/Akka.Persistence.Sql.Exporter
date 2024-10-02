@@ -1,3 +1,9 @@
+#### 0.3.0 October 2nd 2022 ####
+
+* Bump Akka.Persistence.Postgre from 1.4.45 to 1.4.46
+* Bump Akka.Persistence.Sqlite from 1.4.45 to 1.4.51
+* Upgrade SQL Server base docker image to 2022-latest
+
 #### 0.2.0 November 9 2022 ####
 
 * Increased exported data integrity
